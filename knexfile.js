@@ -1,8 +1,4 @@
 // Update with your config settings.
-const environment = "development";
-const knex = require("knex")(config);
-
-module.exports = knex;
 
 module.exports = {
 
@@ -11,7 +7,7 @@ module.exports = {
     connection: {
       database: "todo_app",
       user: "root",
-      password: "password",
+      password: "[事前準備で設定したrootユーザのパスワード]",
     },
     pool: {
       min: 2,
@@ -24,7 +20,7 @@ module.exports = {
     connection: {
       database: "todo_app",
       user: "root",
-      password: "password",
+      password: "[事前準備で設定したrootユーザのパスワード]",
     },
     pool: {
       min: 2,
@@ -37,7 +33,7 @@ module.exports = {
     connection: {
       database: "todo_app",
       user: "root",
-      password: "password",
+      password: "[事前準備で設定したrootユーザのパスワード]",
     },
     pool: {
       min: 2,
