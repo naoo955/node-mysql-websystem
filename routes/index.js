@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const knex = require('../db/knex');
-//const mysql = require('mysql');
+//const knex = require('db/knex');
+const mysql = require('mysql');
 
 const connection = mysql.createConnection({
   host: 'localhost',
