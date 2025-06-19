@@ -7,7 +7,7 @@ module.exports = {
     connection: {
       database: "todo_app",
       user: "root",
-      password: "[事前準備で設定したrootユーザのパスワード]",
+      password: "password",
     },
     pool: {
       min: 2,
@@ -20,7 +20,7 @@ module.exports = {
     connection: {
       database: "todo_app",
       user: "root",
-      password: "[事前準備で設定したrootユーザのパスワード]",
+      password: "password",
     },
     pool: {
       min: 2,
@@ -33,7 +33,7 @@ module.exports = {
     connection: {
       database: "todo_app",
       user: "root",
-      password: "[事前準備で設定したrootユーザのパスワード]",
+      password: "password",
     },
     pool: {
       min: 2,
