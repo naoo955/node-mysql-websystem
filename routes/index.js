@@ -29,6 +29,13 @@ router.get('/', function (req, res, next) {
 });
 
 router.post('/', function (req, res, next) {
+  connection.connect((err) => {
+    if (err) {
+      console.log('error connecting: ' + err.stack);
+      return
+    }
+    console.log('success');
+  });
   const todo = req.body.add;
   knex("tasks")
     .insert({user_id: 1, content: todo})
