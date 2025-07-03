@@ -8,6 +8,7 @@ router.get('/', function (req, res, next) {
   });
 });
 
+
 router.post('/', function (req, res, next) {
   const username = req.body.username;
   const password = req.body.password;
@@ -50,5 +51,4 @@ router.post('/', function (req, res, next) {
       });
     });
 });
-
 module.exports = router;
