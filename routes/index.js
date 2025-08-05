@@ -54,5 +54,10 @@ router.post('/', function (req, res, next) {
 router.use('/signup', require('./signup'));
 router.use('/signin', require('./signin'));
 router.use('/logout', require('./logout'));
+router.use('/tasks', require('./tasks'));
+router.get('/calendar', (req, res) => {
+  res.render('calendar'); // views/calendar.ejs を表示
+});
+
 
 module.exports = router;
