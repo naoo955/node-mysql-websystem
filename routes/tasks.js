@@ -4,6 +4,7 @@ const knex = require('../knex');
 
 // タスク一覧取得（GET /tasks）
 router.get('/', async (req, res) => {
+  const isAuth = req.isAuthenticated();
   try {
     const tasks = await knex('tasks_calender').select('*');
 
@@ -17,18 +18,19 @@ router.get('/', async (req, res) => {
         const diffMs = end - start;
         duration = diffMs / (1000 * 60 * 60); // 時間（h）
       }
-
-      return {
-        id: task.id,
-        title: task.title,
-        start: task.start,
-        allDay: true,
-        color: task.is_study ? 'green' : 'blue',
-        is_study: !!task.is_study,
-        study_start: task.study_start,
-        study_end: task.study_end,
-        study_duration: duration
-      };
+return {
+  id: task.id,
+  title: task.title,
+  start: task.start,
+  allDay: true,
+  color: task.is_study ? 'green' : 'blue',
+  extendedProps: {
+    is_study: !!task.is_study,
+    study_start: task.study_start,
+    study_end: task.study_end,
+    study_duration: duration
+  }
+};
     });
 
     res.json(events);

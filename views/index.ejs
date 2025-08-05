@@ -58,7 +58,7 @@
   <input type="text" id="taskTitle" required placeholder="タスク名" />
   <input type="date" id="taskDate" required />
   <label>
-    <input type="checkbox" id="isStudy" /> 勉強タスク（通常タスクと排他）
+    <input type="checkbox" id="isStudy" /> 勉強タスク
   </label>
   <button type="submit">追加</button>
 </form>
@@ -76,21 +76,14 @@
   <button id="deleteBtn">削除</button>
   <button id="closeBtn">閉じる</button>
 </div>
-
-<div id="taskDetailModal" style="display:none;">
-  <h3 id="modalTitle"></h3>
-  <p><strong>日付:</strong> <span id="modalDate"></span></p>
-
-  <!-- 勉強タスク用の要素 -->
+<!-- 勉強タスク用の要素 -->
   <div id="studySection" style="display:none;">
   <p><strong>開始時間:</strong> <span id="studyStart">未記録</span></p>
   <p><strong>終了時間:</strong> <span id="studyEnd">未記録</span></p>
   <p><strong>勉強時間:</strong> <span id="studyDuration">未記録</span></p>
   <button id="startStudy">勉強開始</button>
   <button id="endStudy">勉強終了</button>
-</div>
 
-  <button id="closeModal">閉じる</button>
   <% } else { %>
   <h1>Welcome to the TodoApp</h1>
   <a class="btn btn-primary" href="/signup" role="button">Sign up now!</a>
@@ -98,6 +91,16 @@
 
  <script>
 let selectedEvent = null;
+function formatDatetime(dtStr) {
+  if (!dtStr) return '未記録';
+  const date = new Date(dtStr);
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  const h = String(date.getHours()).padStart(2, '0');
+  const min = String(date.getMinutes()).padStart(2, '0');
+  return `${y}年${m}月${d}日 ${h}:${min}`;
+}
 
 document.addEventListener('DOMContentLoaded', function () {
   const calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
@@ -117,8 +120,9 @@ document.addEventListener('DOMContentLoaded', function () {
       if (isStudy) {
         // 勉強タスクなら勉強用エリアを表示
         document.getElementById('studySection').style.display = 'block';
-        document.getElementById('studyStart').innerText = info.event.extendedProps.study_start || '未記録';
-        document.getElementById('studyEnd').innerText = info.event.extendedProps.study_end || '未記録';
+        document.getElementById('studyStart').innerText = formatDatetime(info.event.extendedProps.study_start);
+document.getElementById('studyEnd').innerText = formatDatetime(info.event.extendedProps.study_end);
+
         document.getElementById('studyDuration').innerText = info.event.extendedProps.study_duration
           ? parseFloat(info.event.extendedProps.study_duration).toFixed(2) + ' 時間'
           : '未記録';
@@ -130,22 +134,39 @@ document.addEventListener('DOMContentLoaded', function () {
         };
 
         document.getElementById('endStudy').onclick = () => {
-          fetch(`/tasks/${info.event.id}/end`, { method: 'POST' })
-            .then(res => res.json())
-            .then(data => {
-              document.getElementById('studyEnd').innerText = data.end;
-              document.getElementById('studyDuration').innerText = data.duration.toFixed(2) + ' 時間';
-            });
-        };
+  fetch(`/tasks/${info.event.id}/end`, { method: 'POST' })
+    .then(res => res.json())
+    .then(data => {
+      // 画面表示を更新
+      document.getElementById('studyEnd').innerText = data.end;
+      document.getElementById('studyDuration').innerText = data.duration.toFixed(2) + ' 時間';
+
+      // 🔴 extendedProps も更新しないと次回クリック時に undefined のまま
+      info.event.setExtendedProp('study_end', data.end);
+      info.event.setExtendedProp('study_duration', data.duration);
+      
+    });
+};
       } else {
         // 通常タスクなら非表示
         document.getElementById('studySection').style.display = 'none';
       }
+
+      if (info.event.extendedProps.study_start) {
+  document.getElementById('startStudy').style.display = 'none';
+} else {
+  document.getElementById('startStudy').style.display = 'inline-block';
+if (info.event.extendedProps.study_end) {
+  document.getElementById('endStudy').style.display = 'none';
+} else {
+  document.getElementById('endStudy').style.display = 'inline-block';
+}
+}
+
     }
   });
 
   calendar.render();
-
   // タスク追加
   document.getElementById('taskForm').addEventListener('submit', function (e) {
     e.preventDefault();
@@ -200,6 +221,8 @@ document.addEventListener('DOMContentLoaded', function () {
   // 閉じる
   document.getElementById('closeBtn').addEventListener('click', () => {
     document.getElementById('taskDetail').style.display = 'none';
+    document.getElementById('studySection').style.display = 'none';
+
   });
 });
 </script>
