@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>カレンダー</title>
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+</head>
+<body>
+  <div id="calendar"></div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const calendarEl = document.getElementById('calendar');
+      const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        selectable: true,
+        editable: true,
+        events: '/tasks',
+        select: function (info) {
+          const title = prompt('タスク名を入力してください');
+          if (title) {
+            fetch('/tasks', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                title: title,
+                start: info.startStr,
+                end: info.endStr
+              })
+            }).then(() => calendar.refetchEvents());
+          }
+          calendar.unselect();
+        },
+        eventClick: function (info) {
+          if (confirm('このタスクを削除しますか？')) {
+            fetch(`/tasks/${info.event.id}`, { method: 'DELETE' })
+              .then(() => calendar.refetchEvents());
+          }
+        },
+        eventDrop: function (info) {
+          fetch(`/tasks/${info.event.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              start: info.event.start.toISOString(),
+              end: info.event.end?.toISOString()
+            })
+          }).then(() => calendar.refetchEvents());
+        }
+      });
+      calendar.render();
+    });
+  </script>
+</body>
+</html>

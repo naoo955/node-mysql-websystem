@@ -1,36 +1,208 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
-  <title><%= title %></title>
+  <meta charset="UTF-8" />
+  <title>タスク管理カレンダー</title>
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css"
         integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
+
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+    }
+    #taskForm {
+      margin-bottom: 20px;
+    }
+    #taskForm input[type="text"] {
+      width: 200px;
+      padding: 5px;
+    }
+    #taskForm input[type="text"].date {
+      width: 150px;
+      margin-left: 10px;
+    }
+    #calendar {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    #taskDetail {
+      max-width: 800px;
+      margin: 20px auto 0;
+      padding: 10px;
+      border: 1px solid #ccc;
+      display: none; /* 最初は非表示 */
+    }
+    #taskDetail input[type="text"] {
+      width: 100%;
+      padding: 5px;
+      margin-bottom: 10px;
+    }
+    #taskDetail button {
+      margin-right: 10px;
+      padding: 5px 10px;
+    }
+  </style>
 </head>
 <body>
-<%- include('./header'); %>
+  <%- include('./header'); %>
 <%- include('./error_messages'); %>
 <% if(isAuth) { %>
-  <div class="container">
-  <div class="row">
-    <div class="col-md-6">
-      <form action="/" method="post">
-        <label>タスクの追加</label>
-        <input required type="text" name="add" placeholder="何をする?"/>
-        <input type="submit" value="追加"/>
-      </form>
-    </div>
-    <div class="col-md-6">
-      <ul>
-        <% for(let todo of todos){ %>
-          <li><span><%= todo.content %></span></li>
-        <% } %>
-      </ul>
-    </div>
-  </div>
+
+  <h1>タスクカレンダー</h1>
+
+  <!-- タスク追加フォーム -->
+  <form id="taskForm">
+  <input type="text" id="taskTitle" required placeholder="タスク名" />
+  <input type="date" id="taskDate" required />
+  <label>
+    <input type="checkbox" id="isStudy" /> 勉強タスク（通常タスクと排他）
+  </label>
+  <button type="submit">追加</button>
+</form>
+
+  <!-- カレンダー -->
+  <div id="calendar"></div>
+
+  <!-- タスク詳細 -->
+  <div id="taskDetail" style="display:none;">
+  <h3>タスク詳細</h3>
+  <input type="text" id="detailTitle" />
+  <input type="date" id="detailStartDate" />
+  <input type="date" id="detailEndDate" />
+  <button id="saveBtn">保存</button>
+  <button id="deleteBtn">削除</button>
+  <button id="closeBtn">閉じる</button>
 </div>
-<% } else { %>
+
+<div id="taskDetailModal" style="display:none;">
+  <h3 id="modalTitle"></h3>
+  <p><strong>日付:</strong> <span id="modalDate"></span></p>
+
+  <!-- 勉強タスク用の要素 -->
+  <div id="studySection" style="display:none;">
+  <p><strong>開始時間:</strong> <span id="studyStart">未記録</span></p>
+  <p><strong>終了時間:</strong> <span id="studyEnd">未記録</span></p>
+  <p><strong>勉強時間:</strong> <span id="studyDuration">未記録</span></p>
+  <button id="startStudy">勉強開始</button>
+  <button id="endStudy">勉強終了</button>
+</div>
+
+  <button id="closeModal">閉じる</button>
+  <% } else { %>
   <h1>Welcome to the TodoApp</h1>
   <a class="btn btn-primary" href="/signup" role="button">Sign up now!</a>
 <% } %>
+
+ <script>
+let selectedEvent = null;
+
+document.addEventListener('DOMContentLoaded', function () {
+  const calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+    initialView: 'dayGridMonth',
+    selectable: true,
+    events: '/tasks',
+
+    eventClick: function (info) {
+      selectedEvent = info.event;
+
+      document.getElementById('detailTitle').value = info.event.title;
+      document.getElementById('detailStartDate').value = info.event.startStr.slice(0, 10);
+      document.getElementById('detailEndDate').value = info.event.endStr ? info.event.endStr.slice(0, 10) : info.event.startStr.slice(0, 10);
+      document.getElementById('taskDetail').style.display = 'block';
+
+      const isStudy = info.event.extendedProps.is_study;
+      if (isStudy) {
+        // 勉強タスクなら勉強用エリアを表示
+        document.getElementById('studySection').style.display = 'block';
+        document.getElementById('studyStart').innerText = info.event.extendedProps.study_start || '未記録';
+        document.getElementById('studyEnd').innerText = info.event.extendedProps.study_end || '未記録';
+        document.getElementById('studyDuration').innerText = info.event.extendedProps.study_duration
+          ? parseFloat(info.event.extendedProps.study_duration).toFixed(2) + ' 時間'
+          : '未記録';
+
+        document.getElementById('startStudy').onclick = () => {
+          fetch(`/tasks/${info.event.id}/start`, { method: 'POST' }).then(res => {
+            if (res.ok) location.reload();
+          });
+        };
+
+        document.getElementById('endStudy').onclick = () => {
+          fetch(`/tasks/${info.event.id}/end`, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+              document.getElementById('studyEnd').innerText = data.end;
+              document.getElementById('studyDuration').innerText = data.duration.toFixed(2) + ' 時間';
+            });
+        };
+      } else {
+        // 通常タスクなら非表示
+        document.getElementById('studySection').style.display = 'none';
+      }
+    }
+  });
+
+  calendar.render();
+
+  // タスク追加
+  document.getElementById('taskForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    const title = document.getElementById('taskTitle').value;
+    const start = document.getElementById('taskDate').value;
+    const is_study = document.getElementById('isStudy').checked;
+
+    if (!title || !start) {
+      alert("タイトルと日付は必須です");
+      return;
+    }
+
+    fetch('/tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, start, is_study })
+    }).then(res => {
+      if (res.ok) {
+        location.reload(); // または calendar.refetchEvents()
+      } else {
+        alert('追加失敗');
+      }
+    });
+  });
+
+  // 保存
+  document.getElementById('saveBtn').addEventListener('click', () => {
+    const id = selectedEvent.id;
+    const title = document.getElementById('detailTitle').value;
+    const start = document.getElementById('detailStartDate').value;
+    const end = document.getElementById('detailEndDate').value;
+
+    fetch(`/tasks/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, start, end })
+    }).then(() => {
+      calendar.refetchEvents();
+      document.getElementById('taskDetail').style.display = 'none';
+    });
+  });
+
+  // 削除
+  document.getElementById('deleteBtn').addEventListener('click', () => {
+    const id = selectedEvent.id;
+    fetch(`/tasks/${id}`, { method: 'DELETE' }).then(() => {
+      calendar.refetchEvents();
+      document.getElementById('taskDetail').style.display = 'none';
+    });
+  });
+
+  // 閉じる
+  document.getElementById('closeBtn').addEventListener('click', () => {
+    document.getElementById('taskDetail').style.display = 'none';
+  });
+});
+</script>
 <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
         integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
         crossorigin="anonymous"></script>
